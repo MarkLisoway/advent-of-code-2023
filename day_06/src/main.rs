@@ -6,47 +6,15 @@ fn main() {
 }
 
 fn part_1(input: &str) -> i64 {
-	let races = parse(input);
-
-	races
+	parse(input)
 		.iter()
-		.map(|race| {
-			(0..=race.time)
-				.map(|hold_time| {
-					let time_left = race.time - hold_time;
-					let distance = time_left * hold_time;
-
-					match distance > race.distance {
-						true => 1,
-						false => 0,
-					}
-				})
-				.sum::<i64>()
-		})
-		.reduce(|acc, e| acc * e)
+		.map(|race| race.compute_number_of_ways_to_win())
+		.reduce(|acc, wins| acc * wins)
 		.expect("At least two races to exist")
 }
 
 fn part_2(input: &str) -> i64 {
-	let races = parse_as_one(input);
-
-	races
-		.iter()
-		.map(|race| {
-			(0..=race.time)
-				.map(|hold_time| {
-					let time_left = race.time - hold_time;
-					let distance = time_left * hold_time;
-
-					match distance > race.distance {
-						true => 1,
-						false => 0,
-					}
-				})
-				.sum::<i64>()
-		})
-		.reduce(|acc, e| acc * e)
-		.expect("At least two races to exist")
+	parse_single_race(input).compute_number_of_ways_to_win()
 }
 
 fn parse(input: &str) -> Vec<Race> {
@@ -71,7 +39,7 @@ fn parse(input: &str) -> Vec<Race> {
 		.collect()
 }
 
-fn parse_as_one(input: &str) -> Vec<Race> {
+fn parse_single_race(input: &str) -> Race {
 	let numbers: Vec<i64> = input
 		.lines()
 		.map(|line| {
@@ -82,16 +50,32 @@ fn parse_as_one(input: &str) -> Vec<Race> {
 		})
 		.collect();
 
-	vec![Race {
+	Race {
 		time: numbers[0],
 		distance: numbers[1],
-	}]
+	}
 }
 
 #[derive(Debug)]
 struct Race {
 	pub time: i64,
 	pub distance: i64,
+}
+
+impl Race {
+	fn compute_number_of_ways_to_win(&self) -> i64 {
+		(0..=self.time)
+			.map(|hold_time| {
+				let time_left = self.time - hold_time;
+				let distance = time_left * hold_time;
+
+				match distance > self.distance {
+					true => 1,
+					false => 0,
+				}
+			})
+			.sum::<i64>()
+	}
 }
 
 #[cfg(test)]
