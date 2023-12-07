@@ -181,7 +181,7 @@ impl Range {
 }
 
 #[cfg(test)]
-mod tests_day_01 {
+mod tests_day_05 {
 	use super::*;
 
 	#[test]
