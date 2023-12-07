@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-use std::ops::Range;
+use itertools::Itertools;
 
 fn main() {
 	let input = include_str!("part_1_input.txt");
@@ -10,24 +9,43 @@ fn main() {
 
 fn part_1(input: &str) -> u64 {
 	let mut hands = parse(input);
-	hands.sort_by_key(|c| c.power);
-
-	sort_within_powers(&mut hands, 0);
-
-	hands
-		.iter()
-		.rev()
-		.enumerate()
-		.map(|(i, hand)| hand.bid * (i as u64 + 1))
-		.sum()
+	sort_hands(&mut hands);
+	compute_hand_value_sum(&hands)
 }
 
 fn part_2(input: &str) -> u64 {
-	let mut hands = parse_2(input);
-	hands.sort_by_key(|c| c.power);
+	let mut hands = parse(input)
+		.into_iter()
+		.map(|hand| {
+			let power = compute_most_powerful_joker_combination(&hand.cards);
+			let cards = hand
+				.cards
+				.into_iter()
+				.map(|c| match c {
+					Card::Jack => Card::Joker,
+					_ => c,
+				})
+				.collect::<Vec<_>>();
+			let cards_rank = compute_cards_rank(&cards);
 
-	sort_within_powers_2(&mut hands, 0);
+			Hand {
+				cards,
+				cards_rank,
+				bid: hand.bid,
+				power,
+			}
+		})
+		.collect::<Vec<_>>();
 
+	sort_hands(&mut hands);
+	compute_hand_value_sum(&hands)
+}
+
+fn sort_hands(hands: &mut [Hand]) {
+	hands.sort_by_key(|h| (h.power, h.cards_rank.clone()));
+}
+
+fn compute_hand_value_sum(hands: &[Hand]) -> u64 {
 	hands
 		.iter()
 		.rev()
@@ -36,123 +54,37 @@ fn part_2(input: &str) -> u64 {
 		.sum()
 }
 
-fn sort_within_powers(hands: &mut [Hand], card_index: usize) {
-	if card_index > 4 {
-		return;
-	}
+fn compute_most_powerful_joker_combination(cards: &[Card]) -> Power {
+	const REPLACE_CARDS: [Card; 12] = [
+		Card::Ace,
+		Card::King,
+		Card::Queen,
+		Card::Ten,
+		Card::Nine,
+		Card::Eight,
+		Card::Seven,
+		Card::Six,
+		Card::Five,
+		Card::Four,
+		Card::Three,
+		Card::Two,
+	];
 
-	let ranges = get_power_ranges(hands);
+	REPLACE_CARDS
+		.iter()
+		.map(|replace| {
+			let cards = cards
+				.iter()
+				.map(|c| match *c {
+					Card::Jack => *replace,
+					_ => *c,
+				})
+				.collect::<Vec<_>>();
 
-	for range in ranges {
-		let hands = &mut hands[range];
-		hands.sort_by_key(|c| c.cards[card_index]);
-
-		let ranges = get_card_ranges(hands, card_index);
-
-		for range in ranges {
-			let hands = &mut hands[range];
-			sort_within_powers(hands, card_index + 1);
-		}
-	}
-}
-
-fn get_power_ranges(hands: &[Hand]) -> Vec<Range<usize>> {
-	let mut power = hands.first().expect("Hand to exist").power;
-	let mut ranges = vec![];
-
-	let mut start = 0;
-	for (i, hand) in hands.iter().enumerate() {
-		if hand.power != power {
-			power = hand.power;
-			ranges.push(start..i);
-			start = i;
-		} else if i == hands.len() - 1 {
-			ranges.push(start..hands.len());
-		}
-	}
-
-	ranges
-}
-
-fn get_card_ranges(hands: &[Hand], card_index: usize) -> Vec<Range<usize>> {
-	let mut card = hands.first().expect("Hand to exist").cards[card_index];
-	let mut ranges = vec![];
-
-	let mut start = 0;
-	for (i, hand) in hands.iter().enumerate() {
-		if hand.cards[card_index] != card {
-			card = hand.cards[card_index];
-			ranges.push(start..i);
-			start = i;
-		} else if i == hands.len() - 1 {
-			ranges.push(start..hands.len());
-		}
-	}
-
-	ranges
-}
-
-fn sort_within_powers_2(hands: &mut [JHand], card_index: usize) {
-	if card_index > 4 {
-		return;
-	}
-
-	let ranges = get_power_ranges_2(hands);
-
-	for range in ranges {
-		let hands = &mut hands[range];
-		hands.sort_by_key(|c| c.cards[card_index]);
-
-		let ranges = get_card_ranges_2(hands, card_index);
-
-		for range in ranges {
-			let hands = &mut hands[range];
-			sort_within_powers_2(hands, card_index + 1);
-		}
-	}
-}
-
-fn get_power_ranges_2(hands: &[JHand]) -> Vec<Range<usize>> {
-	let mut power = hands.first().expect("Hand to exist").power;
-	let mut ranges = vec![];
-
-	let mut start = 0;
-	for (i, hand) in hands.iter().enumerate() {
-		if hand.power != power {
-			power = hand.power;
-			ranges.push(start..i);
-			start = i;
-		} else if i == hands.len() - 1 {
-			ranges.push(start..hands.len());
-		}
-	}
-
-	ranges
-}
-
-fn get_card_ranges_2(hands: &[JHand], card_index: usize) -> Vec<Range<usize>> {
-	let mut card = hands.first().expect("Hand to exist").cards[card_index];
-	let mut ranges = vec![];
-
-	let mut start = 0;
-	for (i, hand) in hands.iter().enumerate() {
-		if hand.cards[card_index] != card {
-			card = hand.cards[card_index];
-			ranges.push(start..i);
-			start = i;
-		} else if i == hands.len() - 1 {
-			ranges.push(start..hands.len());
-		}
-	}
-
-	ranges
-}
-
-#[derive(Debug)]
-struct Hand {
-	cards: Vec<Card>,
-	bid: u64,
-	power: Power,
+			compute_power(&cards)
+		})
+		.min()
+		.expect("At least one to exist")
 }
 
 fn parse(input: &str) -> Vec<Hand> {
@@ -161,14 +93,14 @@ fn parse(input: &str) -> Vec<Hand> {
 		.map(|line| {
 			let (cards, bid) = line.split_once(' ').expect("Line to split");
 
-			let cards: Vec<Card> = cards
+			let cards = cards
 				.chars()
 				.map(|c| match c {
-					'A' => Card::A,
-					'K' => Card::K,
-					'Q' => Card::Q,
-					'J' => Card::J,
-					'T' => Card::T,
+					'A' => Card::Ace,
+					'K' => Card::King,
+					'Q' => Card::Queen,
+					'J' => Card::Jack,
+					'T' => Card::Ten,
 					'9' => Card::Nine,
 					'8' => Card::Eight,
 					'7' => Card::Seven,
@@ -177,185 +109,88 @@ fn parse(input: &str) -> Vec<Hand> {
 					'4' => Card::Four,
 					'3' => Card::Three,
 					'2' => Card::Two,
-					_ => unreachable!(),
+					_ => unreachable!("No other cards exist"),
 				})
-				.collect();
-			let bid = bid.parse::<u64>().expect("Bid to parse");
+				.collect::<Vec<_>>();
 
-			let mut card_count = HashMap::new();
-			for card in cards.iter() {
-				let entry = card_count.entry(*card).or_insert(0);
-				*entry += 1;
+			let cards_rank = compute_cards_rank(&cards);
+			let power = compute_power(&cards);
+
+			Hand {
+				cards,
+				cards_rank,
+				bid: bid.parse().expect("Bid to parse"),
+				power,
 			}
-
-			let power = {
-				let mut has_five = false;
-				let mut has_four = false;
-				let mut has_three = false;
-				let mut has_two = false;
-				let mut has_second_two = false;
-
-				for (_, v) in card_count.iter() {
-					let v = *v;
-					if v == 5 {
-						has_five = true;
-					} else if v == 4 {
-						has_four = true;
-					} else if v == 3 {
-						has_three = true;
-					} else if v == 2 && has_two {
-						has_second_two = true;
-					} else if v == 2 {
-						has_two = true;
-					}
-				}
-
-				if has_five {
-					Power::FiveOfAKind
-				} else if has_four {
-					Power::FourOfAKind
-				} else if has_three && has_two {
-					Power::FullHouse
-				} else if has_three {
-					Power::ThreeOfAKind
-				} else if has_second_two {
-					Power::TwoPair
-				} else if has_two {
-					Power::OnePair
-				} else {
-					Power::HighCard
-				}
-			};
-
-			Hand { cards, bid, power }
 		})
 		.collect()
 }
 
-fn parse_2(input: &str) -> Vec<JHand> {
-	input
-		.lines()
-		.map(|line| {
-			let (cards, bid) = line.split_once(' ').expect("Line to split");
+fn compute_power(cards: &[Card]) -> Power {
+	let cards: Vec<_> = cards
+		.iter()
+		.sorted()
+		.group_by(|c| **c)
+		.into_iter()
+		.map(|(_, g)| g.count())
+		.sorted()
+		.collect();
 
-			let cards: Vec<JCard> = cards
-				.chars()
-				.map(|c| match c {
-					'A' => JCard::A,
-					'K' => JCard::K,
-					'Q' => JCard::Q,
-					'T' => JCard::T,
-					'9' => JCard::Nine,
-					'8' => JCard::Eight,
-					'7' => JCard::Seven,
-					'6' => JCard::Six,
-					'5' => JCard::Five,
-					'4' => JCard::Four,
-					'3' => JCard::Three,
-					'2' => JCard::Two,
-					'J' => JCard::J,
-					_ => unreachable!(),
-				})
-				.collect();
-			let bid = bid.parse::<u64>().expect("Bid to parse");
+	let unique_cards = cards.len();
 
-			let mut card_count = HashMap::new();
-			cards.iter().for_each(|card| {
-				card_count.entry(*card).and_modify(|e| *e += 1).or_insert(1);
-			});
+	match unique_cards {
+		1 => Power::FiveOfAKind,
+		2 => match cards[1] == 4 {
+			true => Power::FourOfAKind,
+			false => Power::FullHouse,
+		},
+		3 => match cards[2] == 3 {
+			true => Power::ThreeOfAKind,
+			false => Power::TwoPair,
+		},
+		4 => Power::OnePair,
+		5 => Power::HighCard,
+		_ => unreachable!("Cannot have more than 5 unique cards"),
+	}
+}
 
-			let has_joker = card_count.get(&JCard::J).is_some();
-			let joker_count = *card_count.get(&JCard::J).unwrap_or(&0);
-
-			let power = match card_count.len() {
-				1 => Power::FiveOfAKind,
-				2 => {
-					if has_joker {
-						Power::FiveOfAKind
-					} else if card_count.values().any(|v| *v == 4) {
-						Power::FourOfAKind
-					} else {
-						Power::FullHouse
-					}
-				}
-				3 => {
-					if has_joker {
-						let is_two_pair = card_count
-							.iter()
-							.filter(|c| c.0 != &JCard::J)
-							.map(|c| *c.1)
-							.all(|c| c == 2);
-
-						let reached_four = card_count
-							.iter()
-							.filter(|c| c.0 != &JCard::J)
-							.any(|c| *c.1 + joker_count == 4);
-
-						if reached_four {
-							Power::FourOfAKind
-						} else if is_two_pair {
-							Power::FullHouse
-						} else {
-							Power::ThreeOfAKind
-						}
-					} else if card_count.values().any(|v| *v == 3) {
-						Power::ThreeOfAKind
-					} else {
-						Power::TwoPair
-					}
-				}
-				4 => {
-					if has_joker {
-						Power::ThreeOfAKind
-					} else {
-						Power::OnePair
-					}
-				}
-				5 => {
-					if has_joker {
-						Power::OnePair
-					} else {
-						Power::HighCard
-					}
-				}
-				_ => unreachable!(),
-			};
-
-			JHand { cards, bid, power }
+fn compute_cards_rank(cards: &[Card]) -> String {
+	cards
+		.iter()
+		.map(|c| match c {
+			Card::Ace => "0",
+			Card::King => "1",
+			Card::Queen => "2",
+			Card::Jack => "4",
+			Card::Ten => "5",
+			Card::Nine => "6",
+			Card::Eight => "7",
+			Card::Seven => "8",
+			Card::Six => "9",
+			Card::Five => "A",
+			Card::Four => "B",
+			Card::Three => "C",
+			Card::Two => "D",
+			Card::Joker => "E",
 		})
-		.collect()
+		.join("")
 }
 
-#[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
-enum Card {
-	A,
-	K,
-	Q,
-	J,
-	T,
-	Nine,
-	Eight,
-	Seven,
-	Six,
-	Five,
-	Four,
-	Three,
-	Two,
-}
-
-#[derive(Clone, Debug)]
-struct JHand {
-	cards: Vec<JCard>,
+#[derive(Debug)]
+struct Hand {
+	cards: Vec<Card>,
+	cards_rank: String,
 	bid: u64,
 	power: Power,
 }
 
-#[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
-enum JCard {
-	A,
-	K,
-	Q,
-	T,
+#[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
+enum Card {
+	Ace,
+	King,
+	Queen,
+	Jack,
+	Ten,
 	Nine,
 	Eight,
 	Seven,
@@ -364,7 +199,7 @@ enum JCard {
 	Four,
 	Three,
 	Two,
-	J,
+	Joker,
 }
 
 #[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
@@ -397,6 +232,12 @@ QQQJA 483
 	}
 
 	#[test]
+	fn part_01_test() {
+		let input = include_str!("part_1_input.txt");
+		assert_eq!(249726565, part_1(input));
+	}
+
+	#[test]
 	fn part_02_example() {
 		let input = r#"
 32T3K 765
@@ -408,5 +249,11 @@ QQQJA 483
 		.trim();
 
 		assert_eq!(part_2(input), 5905);
+	}
+
+	#[test]
+	fn part_02_test() {
+		let input = include_str!("part_1_input.txt");
+		assert_eq!(251135960, part_2(input));
 	}
 }
