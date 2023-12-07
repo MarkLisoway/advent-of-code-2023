@@ -8,32 +8,18 @@ fn main() {
 }
 
 fn part_1(input: &str) -> u64 {
-	let mut hands = parse(input);
+	let mut hands = parse(input, false);
 	sort_hands(&mut hands);
 	compute_hand_value_sum(&hands)
 }
 
 fn part_2(input: &str) -> u64 {
-	let mut hands = parse(input)
+	let mut hands = parse(input, true)
 		.into_iter()
-		.map(|hand| {
-			let power = compute_most_powerful_joker_combination(&hand.cards);
-			let cards = hand
-				.cards
-				.into_iter()
-				.map(|c| match c {
-					Card::Jack => Card::Joker,
-					_ => c,
-				})
-				.collect::<Vec<_>>();
-			let cards_rank = compute_cards_rank(&cards);
+		.map(|mut hand| {
+			hand.power = compute_most_powerful_joker(&hand.cards);
 
-			Hand {
-				cards,
-				cards_rank,
-				bid: hand.bid,
-				power,
-			}
+			hand
 		})
 		.collect::<Vec<_>>();
 
@@ -54,40 +40,31 @@ fn compute_hand_value_sum(hands: &[Hand]) -> u64 {
 		.sum()
 }
 
-fn compute_most_powerful_joker_combination(cards: &[Card]) -> Power {
-	const REPLACE_CARDS: [Card; 12] = [
-		Card::Ace,
-		Card::King,
-		Card::Queen,
-		Card::Ten,
-		Card::Nine,
-		Card::Eight,
-		Card::Seven,
-		Card::Six,
-		Card::Five,
-		Card::Four,
-		Card::Three,
-		Card::Two,
-	];
-
-	REPLACE_CARDS
+fn compute_most_powerful_joker(cards: &[Card]) -> Power {
+	let (card, _) = cards
 		.iter()
-		.map(|replace| {
-			let cards = cards
-				.iter()
-				.map(|c| match *c {
-					Card::Jack => *replace,
-					_ => *c,
-				})
-				.collect::<Vec<_>>();
+		.filter(|c| **c != Card::Joker)
+		.sorted()
+		.group_by(|c| **c)
+		.into_iter()
+		.map(|(c, g)| (c, g.count()))
+		.max_by_key(|(_, c)| *c)
+		.unwrap_or((Card::Ace, 5));
 
-			compute_power(&cards)
-		})
-		.min()
-		.expect("At least one to exist")
+	compute_power(&replace_joker(cards, card))
 }
 
-fn parse(input: &str) -> Vec<Hand> {
+fn replace_joker(cards: &[Card], to: Card) -> Vec<Card> {
+	cards
+		.iter()
+		.map(|c| match *c {
+			Card::Joker => to,
+			_ => *c,
+		})
+		.collect()
+}
+
+fn parse(input: &str, is_joker: bool) -> Vec<Hand> {
 	input
 		.lines()
 		.map(|line| {
@@ -99,7 +76,10 @@ fn parse(input: &str) -> Vec<Hand> {
 					'A' => Card::Ace,
 					'K' => Card::King,
 					'Q' => Card::Queen,
-					'J' => Card::Jack,
+					'J' => match is_joker {
+						true => Card::Joker,
+						false => Card::Jack,
+					},
 					'T' => Card::Ten,
 					'9' => Card::Nine,
 					'8' => Card::Eight,
