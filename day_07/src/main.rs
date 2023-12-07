@@ -51,17 +51,15 @@ fn compute_most_powerful_joker(cards: &[Card]) -> Power {
 		.max_by_key(|(_, c)| *c)
 		.unwrap_or((Card::Ace, 5));
 
-	compute_power(&replace_joker(cards, card))
-}
-
-fn replace_joker(cards: &[Card], to: Card) -> Vec<Card> {
-	cards
+	let replaced_joker = cards
 		.iter()
 		.map(|c| match *c {
-			Card::Joker => to,
+			Card::Joker => card,
 			_ => *c,
 		})
-		.collect()
+		.collect::<Vec<_>>();
+
+	compute_power(&replaced_joker)
 }
 
 fn parse(input: &str, is_joker: bool) -> Vec<Hand> {
