@@ -3,19 +3,6 @@ use std::collections::HashMap;
 
 fn main() {
 	let input = include_str!("part_1_input.txt");
-	// 	let input = r#"
-	// LR
-	//
-	// 11A = (11B, XXX)
-	// 11B = (XXX, 11Z)
-	// 11Z = (11B, XXX)
-	// 22A = (22B, XXX)
-	// 22B = (22C, 22C)
-	// 22C = (22Z, 22Z)
-	// 22Z = (22B, 22B)
-	// XXX = (XXX, XXX)
-	// "#
-	// 		.trim();
 
 	dbg!(part_1(input));
 	dbg!(part_2(input));
@@ -55,31 +42,21 @@ fn compute_traverse_distance<F: Fn(&str) -> bool>(
 	network: &Network,
 	break_check: F,
 ) -> u64 {
-	let mut steps = 0;
-	let mut step_index = 0;
-	loop {
-		steps += 1;
-
-		let step = network.steps[step_index];
-		match step_index == network.steps.len() - 1 {
-			true => step_index = 0,
-			false => step_index += 1,
-		};
-
-		let next = network.map.get(&key).expect("Ket to exist").clone();
+	for (i, step) in network.steps.iter().cycle().enumerate() {
+		let next = network.map.get(&key).expect("Ket to exist");
 		let next = match step {
-			Step::Left => next.0,
-			Step::Right => next.1,
+			Step::Left => &next.0,
+			Step::Right => &next.1,
 		};
 
-		if break_check(&next) {
-			break;
+		if break_check(next) {
+			return i as u64 + 1;
 		}
 
-		key = next;
+		key = next.clone();
 	}
 
-	steps
+	unreachable!("Previous loop is infinite unless return condition is met");
 }
 
 fn parse(input: &str) -> Network {
@@ -94,21 +71,19 @@ fn parse(input: &str) -> Network {
 		})
 		.collect::<Vec<_>>();
 
-	let mut map = HashMap::new();
-	let mut first = None;
 	let lines = &lines[2..];
-	lines.iter().for_each(|line| {
-		let (key, value) = line.split_once('=').expect("Line to split");
 
-		let key = key.trim();
-		let value = value.trim().replace(['(', ')'], "");
-		let (left, right) = value.split_once(", ").expect("Value to split");
+	let map = lines
+		.iter()
+		.map(|line| {
+			let (key, value) = line.split_once(" = ").expect("Line to split");
 
-		map.insert(key.to_string(), (left.to_string(), right.to_string()));
-		if first.is_none() {
-			first = Some(key.to_string())
-		}
-	});
+			let value = value.replace(['(', ')'], "");
+			let (left, right) = value.split_once(", ").expect("Value to split");
+
+			(key.to_string(), (left.to_string(), right.to_string()))
+		})
+		.collect::<HashMap<_, _>>();
 
 	Network { steps, map }
 }
