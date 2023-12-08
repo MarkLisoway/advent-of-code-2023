@@ -1,0 +1,4 @@
+[package]
+name = "day_00"
+version = "0.0.0"
+edition = "2021"
