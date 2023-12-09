@@ -14,7 +14,7 @@ fn part_2(_input: &str) -> u64 {
 }
 
 #[cfg(test)]
-mod tests_day_08 {
+mod tests_day_00 {
 	use super::*;
 
 	#[test]
