@@ -6,48 +6,36 @@ fn main() {
 }
 
 fn part_1(input: &str) -> i64 {
-	input
-		.lines()
-		.map(|line| {
-			let mut results = vec![];
-
-			let row_1 = line
-				.split_ascii_whitespace()
-				.map(|n| n.parse::<i64>().expect("Number to parse"))
-				.collect::<Vec<_>>();
-
-			results.push(row_1);
-
-			loop {
-				let mut row = vec![];
-				let last_row = results.last().expect("Last row to exist");
-
-				for window in last_row.windows(2) {
-					let current = window[0];
-					let next = window[1];
-					row.push(next - current);
-				}
-
-				let all_zeros = row.iter().all(|v| *v == 0);
-
-				results.push(row);
-
-				if all_zeros {
-					break;
-				}
-			}
-
-			let mut added_val = 0;
-			for row in results.iter().rev() {
-				added_val += row.last().expect("Last value to exist");
-			}
-
-			added_val
+	parse(input)
+		.into_iter()
+		.map(|pyramid| {
+			pyramid
+				.into_iter()
+				.rev()
+				.map(|v| *v.last().expect("Last to exist"))
+				.reduce(|acc, e| acc + e)
+				.expect("Reduce to succeed")
 		})
 		.sum()
 }
 
 fn part_2(input: &str) -> i64 {
+	parse(input)
+		.into_iter()
+		.map(|mut pyramid| {
+			pyramid.iter_mut().for_each(|r| r.reverse());
+
+			pyramid
+				.into_iter()
+				.rev()
+				.map(|v| *v.last().expect("Last to exist"))
+				.reduce(|acc, e| e - acc)
+				.expect("Reduce to succeed")
+		})
+		.sum()
+}
+
+fn parse(input: &str) -> Vec<Vec<Vec<i64>>> {
 	input
 		.lines()
 		.map(|line| {
@@ -61,14 +49,12 @@ fn part_2(input: &str) -> i64 {
 			results.push(row_1);
 
 			loop {
-				let mut row = vec![];
 				let last_row = results.last().expect("Last row to exist");
 
-				for window in last_row.windows(2) {
-					let current = window[0];
-					let next = window[1];
-					row.push(next - current);
-				}
+				let row = last_row
+					.windows(2)
+					.map(|window| window[1] - window[0])
+					.collect::<Vec<_>>();
 
 				let all_zeros = row.iter().all(|v| *v == 0);
 
@@ -79,17 +65,9 @@ fn part_2(input: &str) -> i64 {
 				}
 			}
 
-			results.iter_mut().for_each(|r| r.reverse());
-
-			let mut added_val = 0;
-			for row in results.iter().rev() {
-				added_val = row.last().expect("Last value to exist") - added_val;
-				dbg!(added_val);
-			}
-
-			added_val
+			results
 		})
-		.sum()
+		.collect()
 }
 
 #[cfg(test)]
