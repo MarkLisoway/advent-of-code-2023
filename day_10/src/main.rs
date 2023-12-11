@@ -90,12 +90,12 @@ fn parse(input: &str) -> (Vec<Vec<Node>>, Point) {
 		})
 		.collect();
 
-	replace_start_new(&mut grid, start);
+	replace_start(&mut grid, start);
 
 	(grid, start)
 }
 
-fn replace_start_new(grid: &mut [Vec<Node>], start: Point) {
+fn replace_start(grid: &mut [Vec<Node>], start: Point) {
 	let can_connect_top = match start.y.checked_sub(1) {
 		Some(y) => match grid.get(y).and_then(|r| r.get(start.x)) {
 			Some(node) => node.pipe.can_connect_bottom(),
@@ -260,7 +260,7 @@ fn walk_main_loop(grid: &mut [Vec<Node>], start: Point) {
 		};
 
 		for point in connection_points {
-			if walk_node_new(grid, point) {
+			if walk_node(grid, point) {
 				current = point;
 				continue 'outer;
 			}
@@ -270,7 +270,7 @@ fn walk_main_loop(grid: &mut [Vec<Node>], start: Point) {
 	}
 }
 
-fn walk_node_new(grid: &mut [Vec<Node>], point: Point) -> bool {
+fn walk_node(grid: &mut [Vec<Node>], point: Point) -> bool {
 	let node = get_grid_node_mut(grid, point);
 
 	match node.is_main_loop {
