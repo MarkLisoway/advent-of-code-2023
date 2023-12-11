@@ -16,7 +16,7 @@ fn main() {
 .......#..
 #...#.....
 "#
-		.trim();
+	.trim();
 
 	let now = Instant::now();
 	dbg!(part_1(input));
@@ -33,14 +33,9 @@ fn part_1(input: &str) -> u64 {
 		.flat_map(|(y, row)| {
 			row.chars()
 				.enumerate()
-				.filter_map(|(x, c)| {
-					match c == '#' {
-						true => Some(Point {
-							x,
-							y,
-						}),
-						false => None
-					}
+				.filter_map(|(x, c)| match c == '#' {
+					true => Some(Point { x, y }),
+					false => None,
 				})
 				.collect::<Vec<_>>()
 		})
@@ -96,14 +91,9 @@ fn part_2(input: &str) -> u64 {
 		.flat_map(|(y, row)| {
 			row.chars()
 				.enumerate()
-				.filter_map(|(x, c)| {
-					match c == '#' {
-						true => Some(Point {
-							x,
-							y,
-						}),
-						false => None
-					}
+				.filter_map(|(x, c)| match c == '#' {
+					true => Some(Point { x, y }),
+					false => None,
 				})
 				.collect::<Vec<_>>()
 		})
@@ -122,25 +112,23 @@ fn part_2(input: &str) -> u64 {
 			let max_y = current.y.max(next.y);
 
 			let x_crosses = (min_x..=max_x)
-				.map(|x| {
-					match empty_cols.contains(&x) {
-						true => 1,
-						false => 0
-					}
+				.map(|x| match empty_cols.contains(&x) {
+					true => 1,
+					false => 0,
 				})
 				.sum::<i64>();
 
 			let y_crosses = (min_y..=max_y)
-				.map(|y| {
-					match empty_rows.contains(&y) {
-						true => 1,
-						false => 0
-					}
+				.map(|y| match empty_rows.contains(&y) {
+					true => 1,
+					false => 0,
 				})
 				.sum::<i64>();
 
-			let x_diff = (current.x as i64 - next.x as i64).abs() - x_crosses + (x_crosses * 1_000_000);
-			let y_diff = (current.y as i64 - next.y as i64).abs() - y_crosses + (y_crosses * 1_000_000);
+			let x_diff =
+				(current.x as i64 - next.x as i64).abs() - x_crosses + (x_crosses * 1_000_000);
+			let y_diff =
+				(current.y as i64 - next.y as i64).abs() - y_crosses + (y_crosses * 1_000_000);
 
 			total += x_diff + y_diff;
 		}
@@ -154,15 +142,13 @@ fn part_2(input: &str) -> u64 {
 fn parse(input: &str) -> Vec<String> {
 	let mut rows = vec![];
 
-	input
-		.lines()
-		.for_each(|line| {
-			if line.chars().all(|c| c == '.') {
-				rows.push(line.to_string());
-			}
-
+	input.lines().for_each(|line| {
+		if line.chars().all(|c| c == '.') {
 			rows.push(line.to_string());
-		});
+		}
+
+		rows.push(line.to_string());
+	});
 
 	let mut empty_cols = vec![];
 	for x in 0..rows.first().unwrap().len() {
@@ -195,11 +181,9 @@ fn parse(input: &str) -> Vec<String> {
 fn parse_2(input: &str) -> Vec<String> {
 	let mut rows = vec![];
 
-	input
-		.lines()
-		.for_each(|line| {
-			rows.push(line.to_string());
-		});
+	input.lines().for_each(|line| {
+		rows.push(line.to_string());
+	});
 
 	// let mut empty_cols = vec![];
 	// for x in 0..rows.first().unwrap().len() {
