@@ -25,9 +25,9 @@ fn part_2(input: &str) -> u64 {
 
 		let hash = hash_str(key) as usize;
 		let bucket = &mut hashmap[hash];
-		let bucket_index = bucket.iter().position(|e| e.key == key);
+		let lens_index = bucket.iter().position(|lens| lens.key == key);
 
-		match (bucket_index, value) {
+		match (lens_index, value) {
 			(Some(i), Some(n)) => {
 				// Have a previous value, and a new value, replace it.
 				bucket[i].value = n;
