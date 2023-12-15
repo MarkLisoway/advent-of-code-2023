@@ -124,9 +124,6 @@ version = "0.0.0"
 [[package]]
 name = "day_15"
 version = "0.0.0"
-dependencies = [
- "rayon",
-]
 
 [[package]]
 name = "either"

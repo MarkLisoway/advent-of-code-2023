@@ -1,14 +1,11 @@
 use rayon::prelude::*;
 use std::collections::HashSet;
-use std::time::Instant;
 
 fn main() {
 	let input = include_str!("part_1_input.txt");
 
-	let now = Instant::now();
 	dbg!(part_1(input));
 	dbg!(part_2(input));
-	dbg!(Instant::now() - now);
 }
 
 fn part_1(input: &str) -> u64 {
